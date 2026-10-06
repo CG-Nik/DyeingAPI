@@ -114,6 +114,7 @@ namespace DyeingAPI
 
             ServerHandler.Initialized += ServerInitialized;
             MateriaLib.Main.SetupMaterial += SetupMaterial;
+            MateriaLib.Main.PostSetupMaterial += PostSetupMaterial;
             SetUpDyeRecipes += SetUpColorlessDyeRecipes;
         }
 
@@ -150,12 +151,15 @@ namespace DyeingAPI
             LibMaterial libMaterial_rope = new LibMaterial("Colorless Rope", 10203, LibMaterial.MaterialType.rope);
             LibMaterial.NewMaterials.Add(libMaterial_rope);
             libMaterial_rope.Configure(new MaterialConfig { });
-            Material mateial = UnityEngine.Object.Instantiate(libMaterial_rope.physicalMaterial.GetMaterial(PhysicalMaterialChannel.A));
-            mateial.name = "Colorless Rope";
-            mateial.SetVector("_ColorA", new Vector4(0.6f, 0.6f, 0.6f, 1f));
-            mateial.SetVector("_Color", new Vector4(0.7f, 0.7f, 0.7f, 1f));
-            libMaterial_rope.ReplaceAllMaterials(mateial);
+            Material material_rope = UnityEngine.Object.Instantiate(libMaterial_rope.physicalMaterial.GetMaterial(PhysicalMaterialChannel.A));
+            material_rope.name = "Colorless Rope";
+            material_rope.SetVector("_ColorA", new Vector4(0.6f, 0.6f, 0.6f, 1f));
+            material_rope.SetVector("_Color", new Vector4(0.7f, 0.7f, 0.7f, 1f));
+            libMaterial_rope.ReplaceAllMaterials(material_rope);
+        }
 
+        private void PostSetupMaterial()
+        {
             PreSetUpDyeRecipes.Invoke();
 
             SetUpDyeRecipes.Invoke();
