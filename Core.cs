@@ -7,11 +7,7 @@ using Alta.Networking.Servers;
 using HarmonyLib;
 using MateriaLib;
 using MelonLoader;
-using NLog.LayoutRenderers.Wrappers;
-using System.Drawing;
 using System.Reflection;
-using System.Security.Policy;
-using System.Xml.Linq;
 using UnityEngine;
 
 [assembly: MelonInfo(typeof(DyeingAPI.Core), "DyeingAPI", "1.0.0", "CGNik", null)]
@@ -33,7 +29,7 @@ namespace DyeingAPI
             if (networkPrefab_item == null) { return; }
             if (networkPrefab_item.GetComponent<PhysicalMaterialPart>() == null) { return; }
             
-            DyeRecipe? dyeRecipe = DyeRecipe.GetValidDyeRecipe(networkPrefab_item.Hash, networkPrefab_item.GetComponent<PhysicalMaterialPart>().PhysicalMaterial.Hash, liquidContent.Liquid.Hash);
+            DyeRecipe? dyeRecipe = DyeRecipe.GetValidDyeRecipe(networkPrefab_item.Hash, networkPrefab_item.GetComponent<PhysicalMaterialPart>().PhysicalMaterial.Hash, liquidContent.Liquid.Hash, liquidContent.Data);
             
             if (dyeRecipe == null) { return; }
 
@@ -75,12 +71,17 @@ namespace DyeingAPI
         public List<uint> liquids;
         public uint outputMaterial;
 
-        public static DyeRecipe GetValidDyeRecipe(uint prefab, uint material, uint liquid)
+        public static DyeRecipe GetValidDyeRecipe(uint prefab, uint material, uint liquidDefinition, LiquidData liquidData)
         {
             List<DyeRecipe> validRecipes = [];
             foreach (DyeRecipe dyeRecipe in DyeRecipe.All)
             {
-                if (dyeRecipe.inputPrefabs.Contains(prefab) && (dyeRecipe.excludeInputMaterials ? !dyeRecipe.inputMaterials.Contains(material) : dyeRecipe.inputMaterials.Contains(material)) && dyeRecipe.liquids.Contains(liquid))
+                if
+                (
+                    dyeRecipe.inputPrefabs.Contains(prefab)
+                    && (dyeRecipe.excludeInputMaterials ? !dyeRecipe.inputMaterials.Contains(material) : dyeRecipe.inputMaterials.Contains(material))
+                    && dyeRecipe.liquids.Contains(liquidDefinition)
+                )
                 {
                     validRecipes.Add(dyeRecipe);
                 }
@@ -107,6 +108,10 @@ namespace DyeingAPI
         public static event Action PreSetUpDyeRecipes = () => { };
         public static event Action SetUpDyeRecipes = () => { };
         public static event Action PostSetUpDyeRecipes = () => { };
+
+        public static List<uint> leatherPrefabHashes = [23206u, 47760u, 63204u];
+        public static List<uint> canvasPrefabHashes = [34570u];
+        public static List<uint> ropePrefabHashes = [43836u];
 
         public override void OnInitializeMelon()
         {
@@ -172,7 +177,7 @@ namespace DyeingAPI
             new DyeRecipe(
                 "Colorless Leather Recipe",
                 1,
-                [23206u, 47760u, 63204u],
+                leatherPrefabHashes,
                 [10201u],
                 true,
                 [44872u],
@@ -182,20 +187,20 @@ namespace DyeingAPI
             new DyeRecipe(
                 "Colorless Canvas Recipe",
                 2,
-                [34570u],
+                canvasPrefabHashes,
                 [10202u],
                 true,
-                new List<uint>() { 44872u },
+                [44872u],
                 10202u
             );
 
             new DyeRecipe(
                 "Colorless Rope Recipe",
                 3,
-                new List<uint>() { 43836u },
-                new List<uint>() { 10203u },
+                ropePrefabHashes,
+                [10203u],
                 true,
-                new List<uint>() { 44872u },
+                [44872u],
                 10203u
             );
         }
