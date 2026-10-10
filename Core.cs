@@ -135,9 +135,9 @@ namespace DyeingAPI
             libMaterial_leather.Configure(new MaterialConfig { });
             Material material_leather = UnityEngine.Object.Instantiate(libMaterial_leather.physicalMaterial.GetMaterial(PhysicalMaterialChannel.A));
             material_leather.name = "Colorless Leather";
-            material_leather.SetVector("_Color", new Vector4(0.6f, 0.6f, 0.6f, 1f));
-            material_leather.SetVector("_Color1", new Vector4(0.7f, 0.7f, 0.7f, 1f));
-            material_leather.SetVector("_Color2", new Vector4(0.8f, 0.8f, 0.8f, 1f));
+            material_leather.SetVector("_Color", new Vector4(0.3f, 0.3f, 0.3f, 1f));
+            material_leather.SetVector("_Color1", new Vector4(0.5f, 0.5f, 0.5f, 1f));
+            material_leather.SetVector("_Color2", new Vector4(0.7f, 0.7f, 0.7f, 1f));
             libMaterial_leather.ReplaceAllMaterials(material_leather);
 
             LibMaterial libMaterial_canvas = new LibMaterial("Colorless Canvas", 10202, LibMaterial.MaterialType.canvas);
@@ -147,10 +147,10 @@ namespace DyeingAPI
             Material cutout = UnityEngine.Object.Instantiate(libMaterial_canvas.physicalMaterial.GetMaterial(PhysicalMaterialChannel.B));
             worn.name = "Colorless Canvas Worn";
             cutout.name = "Colorless Canvas Cutout";
-            worn.SetVector("_ColorA", new Vector4(0.55f, 0.55f, 0.55f, 1f));
-            worn.SetVector("_Color", new Vector4(0.625f, 0.625f, 0.625f, 1f));
-            cutout.SetVector("_ColorA", new Vector4(0.55f, 0.55f, 0.55f, 1f));
-            cutout.SetVector("_Color", new Vector4(0.7f, 0.7f, 0.7f, 1f));
+            worn.SetVector("_ColorA", new Vector4(0.5f, 0.5f, 0.5f, 1f));
+            worn.SetVector("_Color", new Vector4(0.55f, 0.55f, 0.55f, 1f));
+            cutout.SetVector("_ColorA", new Vector4(0.5f, 0.5f, 0.5f, 1f));
+            cutout.SetVector("_Color", new Vector4(0.6f, 0.6f, 0.6f, 1f));
             libMaterial_canvas.ReplaceAllMaterials(worn, cutout);
 
             LibMaterial libMaterial_rope = new LibMaterial("Colorless Rope", 10203, LibMaterial.MaterialType.rope);
@@ -158,8 +158,8 @@ namespace DyeingAPI
             libMaterial_rope.Configure(new MaterialConfig { });
             Material material_rope = UnityEngine.Object.Instantiate(libMaterial_rope.physicalMaterial.GetMaterial(PhysicalMaterialChannel.A));
             material_rope.name = "Colorless Rope";
-            material_rope.SetVector("_ColorA", new Vector4(0.6f, 0.6f, 0.6f, 1f));
-            material_rope.SetVector("_Color", new Vector4(0.7f, 0.7f, 0.7f, 1f));
+            material_rope.SetVector("_ColorA", new Vector4(0.3f, 0.3f, 0.3f, 1f));
+            material_rope.SetVector("_Color", new Vector4(0.5f, 0.5f, 0.5f, 1f));
             libMaterial_rope.ReplaceAllMaterials(material_rope);
         }
 
