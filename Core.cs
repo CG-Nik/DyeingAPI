@@ -77,13 +77,22 @@ namespace DyeingAPI
         /// <param name="hueTolerance">How far the hue may be from one of liquidColors, in degrees (0 to 180). Hue wraps around, so 0 and 360 are the same red. Ignored when either color is too gray or too dark to have a real hue.</param>
         /// <param name="saturationTolerance">How far the saturation may be, 0 to 1. Ignored when either color is too dark to have a real saturation.</param>
         /// <param name="valueTolerance">How far the brightness (value) may be, 0 to 1. If several recipes match, the closest one wins.</param>
-        public DyeRecipe(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial, List<Color> liquidColors, float hueTolerance = 15f, float saturationTolerance = 0.15f, float valueTolerance = 0.15f)
+        /// <param name="liquidBlacklist">List of hashes of LiquidDefinitions that should be blacklisted from being allowed, regardless of if they match colors. Mainly intended to be used for blue colors that would otherwise allow Water as a dye. If null, defaults to the empty list.</param>
+        public DyeRecipe(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial, List<Color> liquidColors, float hueTolerance = 15f, float saturationTolerance = 0.15f, float valueTolerance = 0.15f, List<uint> liquidBlacklist = null)
             : this(name, hash, inputPrefabs, inputMaterials, excludeInputMaterials, liquids, outputMaterial)
         {
             this.liquidColors = liquidColors;
             this.hueTolerance = hueTolerance;
             this.saturationTolerance = saturationTolerance;
             this.valueTolerance = valueTolerance;
+            if (liquidBlacklist == null)
+            {
+                this.liquidBlacklist = [];
+            }
+            else
+            {
+                this.liquidBlacklist = liquidBlacklist;
+            }
         }
 
         public List<uint> inputPrefabs;
@@ -95,6 +104,7 @@ namespace DyeingAPI
         public float hueTolerance = 15f;
         public float saturationTolerance = 0.15f;
         public float valueTolerance = 0.15f;
+        public List<uint> liquidBlacklist = [];
 
         private const float MinChromaForHue = 0.1f;
         private const float MinValueForSaturation = 0.1f;
@@ -108,9 +118,15 @@ namespace DyeingAPI
             {
                 if (!dyeRecipe.inputPrefabs.Contains(prefab)) { continue; }
                 if (dyeRecipe.excludeInputMaterials ? dyeRecipe.inputMaterials.Contains(material) : !dyeRecipe.inputMaterials.Contains(material)) { continue; }
-                if (liquidDefinition != 0u && dyeRecipe.liquids.Contains(liquidDefinition))
+                if (liquidDefinition != 0u)
                 {
-                    return dyeRecipe;
+                    if (dyeRecipe.liquids.Contains(liquidDefinition))
+                    {
+                        return dyeRecipe;
+                    } else if (dyeRecipe.liquidBlacklist.Contains(liquidDefinition))
+                    {
+                        continue;
+                    }
                 }
                 if (liquidData == null) { continue; }
                 if (liquidData.LiquidVisual == null) { continue; }
