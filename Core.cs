@@ -24,12 +24,17 @@ namespace DyeingAPI
             if (liquidContainer == null) { return; }
 
             LiquidContent liquidContent = (LiquidContent)typeof(LiquidContainer).GetField("content", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(liquidContainer);
+
+            if (liquidContent == null) { return; }
+
             NetworkPrefab? networkPrefab_item = other.GetComponentInParent<NetworkPrefab>();
 
             if (networkPrefab_item == null) { return; }
             if (networkPrefab_item.GetComponent<PhysicalMaterialPart>() == null) { return; }
+
+            uint liquidHash = liquidContent.Liquid != null ? liquidContent.Liquid.Hash : 0u;
             
-            DyeRecipe? dyeRecipe = DyeRecipe.GetValidDyeRecipe(networkPrefab_item.Hash, networkPrefab_item.GetComponent<PhysicalMaterialPart>().PhysicalMaterial.Hash, liquidContent.Liquid.Hash, liquidContent.Data);
+            DyeRecipe? dyeRecipe = DyeRecipe.GetValidDyeRecipe(networkPrefab_item.Hash, networkPrefab_item.GetComponent<PhysicalMaterialPart>().PhysicalMaterial.Hash, liquidHash, liquidContent.Data);
             
             if (dyeRecipe == null) { return; }
 
@@ -65,34 +70,96 @@ namespace DyeingAPI
             this.Register();
         }
 
+        /// <summary>
+        /// A recipe that also matches custom liquids, such as stews, by their color.
+        /// </summary>
+        /// <param name="liquidColors">Colors this recipe accepts from a custom liquid, as 0 to 1 RGB. Alpha is ignored. A custom liquid has no LiquidDefinition, so it is matched by LiquidData.TintedLiquidColor instead of by hash. Preset liquids still only match by the liquids list.</param>        /// <param name="colorTolerance">How far the liquid's color may be from one of the liquidColors, as a straight distance in RGB. If several recipes match, the closest color wins.</param>
+        /// <param name="hueTolerance">How far the hue may be from one of liquidColors, in degrees (0 to 180). Hue wraps around, so 0 and 360 are the same red. Ignored when either color is too gray or too dark to have a real hue.</param>
+        /// <param name="saturationTolerance">How far the saturation may be, 0 to 1. Ignored when either color is too dark to have a real saturation.</param>
+        /// <param name="valueTolerance">How far the brightness (value) may be, 0 to 1. If several recipes match, the closest one wins.</param>
+        /// public DyeRecipe(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial, List<Color> liquidColors, float hueTolerance = 15f, float saturationTolerance = 0.15f, float valueTolerance = 0.15f)
+        ///     : this(name, hash, inputPrefabs, inputMaterials, excludeInputMaterials, liquids, outputMaterial)
+        ///     {
+        ///       this.liquidColors = liquidColors;
+        ///       this.hueTolerance = hueTolerance;
+        ///       this.saturationTolerance = saturationTolerance;
+        ///       this.valueTolerance = valueTolerance;
+        ///     }
+
         public List<uint> inputPrefabs;
         public List<uint> inputMaterials;
         public bool excludeInputMaterials;
         public List<uint> liquids;
         public uint outputMaterial;
+        public List<Color> liquidColors = [];
+        public float saturationTolerance = 0.15f;
+        public float valueTolerance = 0.15f;
+
+        private const float MinChromaForHue = 0.1f;
+        private const float MinValueForSaturation = 0.1f;
 
         public static DyeRecipe GetValidDyeRecipe(uint prefab, uint material, uint liquidDefinition, LiquidData liquidData)
         {
-            List<DyeRecipe> validRecipes = [];
+            DyeRecipe? closestColorRecipe = null;
+            float closestScore = float.MaxValue;
+
             foreach (DyeRecipe dyeRecipe in DyeRecipe.All)
             {
-                if
-                (
-                    dyeRecipe.inputPrefabs.Contains(prefab)
-                    && (dyeRecipe.excludeInputMaterials ? !dyeRecipe.inputMaterials.Contains(material) : dyeRecipe.inputMaterials.Contains(material))
-                    && dyeRecipe.liquids.Contains(liquidDefinition)
-                )
+                if (!dyeRecipe.inputPrefabs.Contains(prefab)) { continue; }
+                if (dyeRecipe.excludeInputMaterials ? dyeRecipe.inputMaterials.Contains(material) : !dyeRecipe.inputMaterials.Contains(material)) { continue; }
+                if (liquidDefinition != 0)
                 {
-                    validRecipes.Add(dyeRecipe);
+                    if (!dyeRecipe.liquids.Contains(liquidDefinition)) { return dyeRecipe; }
+                    continue;
+                }
+                if (liquidData == null || liquidData.LiquidVisual == null) { continue; }
+
+                foreach (Color color in dyeRecipe.liquidColors)
+                {
+                    float score = ColorMatchScore(liquidData.TintedLiquidColor, color, dyeRecipe);
+                    if (score >= 0f && score < closestScore)
+                    {
+                        closestScore = score;
+                        closestColorRecipe = dyeRecipe;
+                    }
                 }
             }
 
-            if (validRecipes.Count > 0)
-            {
-                return validRecipes[0];
-            }
+            return closestColorRecipe;
+        }
 
-            return null;
+        private static float ColorMatchScore(Color liquid, Color target, DyeRecipe)
+        {
+            Color.RGBToHSV(liquid, out float liquidHue, out float liquidSaturation, out float liquidValue);
+            Color.RBGToHSV(target, out float targetHue, out flout targetSaturation, out float targetValue);
+
+            float valueDiff = Mathf.Abs(liquidValue - targetValue);
+            if (valueDiff > dyeRecipe.valueTolerance) { return -1f; }
+            float score = Normalized(valueDiff, recipe.valueTolerance);
+
+            if (liquidValue >- MinValueForSaturation && targetValue >= MinValueForSaturation)
+            {
+                float saturationDiff = Mathf.Abs(liquidSaturation - targetSaturation);
+                if (saturationDiff > dyeRecipe.saturationTolerance) { return -1f; }
+                score += Normalized(saturationDiff, dyeRecipe.saturationTolerance);
+
+                if (liquidSaturation >= MinChromaForHue && targetSaturation >= MinChromaForHue)
+                {
+                    float hueDiff = Mathf.Abs(liquidHue - targetHue);
+                    if (hueDiff > 0.5f) { hueDiff = 1f - hueDiff; }
+                    float hueTolerance = dyeRecipe.hueTolerance / 360f;
+                    if (hueDiff > hueTolerance) { return -1f; }
+                    score += Normalized(hueDiff, hueTolerance);
+                }
+            }
+            return score;
+        }
+
+        private static float Normalized(float diff, float tolerance)
+        {
+            if (tolerance <= 0f) { return 0f; }
+            float ratio = diff / tolerance;
+            return ratio * ratio;
         }
 
         public void Register()
