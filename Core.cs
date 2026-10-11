@@ -77,14 +77,14 @@ namespace DyeingAPI
         /// <param name="hueTolerance">How far the hue may be from one of liquidColors, in degrees (0 to 180). Hue wraps around, so 0 and 360 are the same red. Ignored when either color is too gray or too dark to have a real hue.</param>
         /// <param name="saturationTolerance">How far the saturation may be, 0 to 1. Ignored when either color is too dark to have a real saturation.</param>
         /// <param name="valueTolerance">How far the brightness (value) may be, 0 to 1. If several recipes match, the closest one wins.</param>
-        /// public DyeRecipe(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial, List<Color> liquidColors, float hueTolerance = 15f, float saturationTolerance = 0.15f, float valueTolerance = 0.15f)
-        ///     : this(name, hash, inputPrefabs, inputMaterials, excludeInputMaterials, liquids, outputMaterial)
-        ///     {
-        ///       this.liquidColors = liquidColors;
-        ///       this.hueTolerance = hueTolerance;
-        ///       this.saturationTolerance = saturationTolerance;
-        ///       this.valueTolerance = valueTolerance;
-        ///     }
+        public DyeRecipe(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial, List<Color> liquidColors, float hueTolerance = 15f, float saturationTolerance = 0.15f, float valueTolerance = 0.15f)
+            : this(name, hash, inputPrefabs, inputMaterials, excludeInputMaterials, liquids, outputMaterial)
+        {
+            this.liquidColors = liquidColors;
+            this.hueTolerance = hueTolerance;
+            this.saturationTolerance = saturationTolerance;
+            this.valueTolerance = valueTolerance;
+        }
 
         public List<uint> inputPrefabs;
         public List<uint> inputMaterials;
@@ -92,6 +92,7 @@ namespace DyeingAPI
         public List<uint> liquids;
         public uint outputMaterial;
         public List<Color> liquidColors = [];
+        public float hueTolerance = 15f;
         public float saturationTolerance = 0.15f;
         public float valueTolerance = 0.15f;
 
@@ -107,12 +108,12 @@ namespace DyeingAPI
             {
                 if (!dyeRecipe.inputPrefabs.Contains(prefab)) { continue; }
                 if (dyeRecipe.excludeInputMaterials ? dyeRecipe.inputMaterials.Contains(material) : !dyeRecipe.inputMaterials.Contains(material)) { continue; }
-                if (liquidDefinition != 0)
+                if (liquidDefinition != 0u && dyeRecipe.liquids.Contains(liquidDefinition))
                 {
-                    if (!dyeRecipe.liquids.Contains(liquidDefinition)) { return dyeRecipe; }
-                    continue;
+                    return dyeRecipe;
                 }
-                if (liquidData == null || liquidData.LiquidVisual == null) { continue; }
+                if (liquidData == null) { continue; }
+                if (liquidData.LiquidVisual == null) { continue; }
 
                 foreach (Color color in dyeRecipe.liquidColors)
                 {
@@ -128,14 +129,14 @@ namespace DyeingAPI
             return closestColorRecipe;
         }
 
-        private static float ColorMatchScore(Color liquid, Color target, DyeRecipe)
+        private static float ColorMatchScore(Color liquid, Color target, DyeRecipe dyeRecipe)
         {
             Color.RGBToHSV(liquid, out float liquidHue, out float liquidSaturation, out float liquidValue);
-            Color.RBGToHSV(target, out float targetHue, out flout targetSaturation, out float targetValue);
+            Color.RGBToHSV(target, out float targetHue, out float targetSaturation, out float targetValue);
 
             float valueDiff = Mathf.Abs(liquidValue - targetValue);
             if (valueDiff > dyeRecipe.valueTolerance) { return -1f; }
-            float score = Normalized(valueDiff, recipe.valueTolerance);
+            float score = Normalized(valueDiff, dyeRecipe.valueTolerance);
 
             if (liquidValue >- MinValueForSaturation && targetValue >= MinValueForSaturation)
             {
