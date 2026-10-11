@@ -24,12 +24,17 @@ namespace DyeingAPI
             if (liquidContainer == null) { return; }
 
             LiquidContent liquidContent = (LiquidContent)typeof(LiquidContainer).GetField("content", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(liquidContainer);
+
+            if (liquidContent == null) { return; }
+
             NetworkPrefab? networkPrefab_item = other.GetComponentInParent<NetworkPrefab>();
 
             if (networkPrefab_item == null) { return; }
             if (networkPrefab_item.GetComponent<PhysicalMaterialPart>() == null) { return; }
+
+            uint liquidHash = liquidContent.Liquid != null ? liquidContent.Liquid.Hash : 0u;
             
-            DyeRecipe? dyeRecipe = DyeRecipe.GetValidDyeRecipe(networkPrefab_item.Hash, networkPrefab_item.GetComponent<PhysicalMaterialPart>().PhysicalMaterial.Hash, liquidContent.Liquid.Hash, liquidContent.Data);
+            DyeRecipe? dyeRecipe = DyeRecipe.GetValidDyeRecipe(networkPrefab_item.Hash, networkPrefab_item.GetComponent<PhysicalMaterialPart>().PhysicalMaterial.Hash, liquidHash, liquidContent.Data);
             
             if (dyeRecipe == null) { return; }
 
@@ -65,34 +70,62 @@ namespace DyeingAPI
             this.Register();
         }
 
+        /// <summary>
+        /// A recipe that also matches custom liquids, such as stews, by their color.
+        /// </summary>
+        /// <param name="liquidColors">Colors this recipe accepts from a custom liquid, as 0 to 1 RGB. Alpha is ignored. A custom liquid has no LiquidDefinition, so it is matched by LiquidDate.TintedLiquidColor instead of by hash. Preset liquids still only match by the liquids list.</param>
+        /// <param name="colorTolerance">How far the liquid's color may be from one of the liquidColors, as a straight distance in RGB. If several recipes match, the closest color wins.</param>
+        /// public DyeRecipe(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial, List<Color> liquidColors, float colorTolerance = 0.1f)
+        /// : this(name, hash, inputPrefabs, inputMaterials, excludeInputMaterials, liquids, outputMaterial)
+        /// {
+        ///   this.liquidColors = liquidColors;
+        ///  this.colorTolerance = colorTolerance;
+        /// }
+
         public List<uint> inputPrefabs;
         public List<uint> inputMaterials;
         public bool excludeInputMaterials;
         public List<uint> liquids;
         public uint outputMaterial;
+        public List<Color> liquidColors = [];
+        public float colorTolerance = 0.1f;
 
         public static DyeRecipe GetValidDyeRecipe(uint prefab, uint material, uint liquidDefinition, LiquidData liquidData)
         {
-            List<DyeRecipe> validRecipes = [];
+            DyeRecipe? closestColorRecipe = null;
+            float closestDistance = float.MaxValue;
+
             foreach (DyeRecipe dyeRecipe in DyeRecipe.All)
             {
-                if
-                (
-                    dyeRecipe.inputPrefabs.Contains(prefab)
-                    && (dyeRecipe.excludeInputMaterials ? !dyeRecipe.inputMaterials.Contains(material) : dyeRecipe.inputMaterials.Contains(material))
-                    && dyeRecipe.liquids.Contains(liquidDefinition)
-                )
+                if (!dyeRecipe.inputPrefabs.Contains(prefab)) { continue; }
+                if (dyeRecipe.excludeInputMaterials ? dyeRecipe.inputMaterials.Contains(material) : !dyeRecipe.inputMaterials.Contains(material)) { continue; }
+                if (liquidDefinition != 0)
                 {
-                    validRecipes.Add(dyeRecipe);
+                    continue;
+                }
+                if (liquidData == null || liquidData.LiquidVisual == null) { continue; }
+
+                foreach (Color color in dyeRecipe.liquidColors)
+                {
+                    float distance = ColorDistance(liquidData.TintedLiquidColor, color);
+                    if (distance <= dyeRecipe.colorTolerance && distance < closestDistance)
+                    {
+                        closestDistance = distance;
+                        closestColorRecipe = dyeRecipe;
+                    }
                 }
             }
 
-            if (validRecipes.Count > 0)
-            {
-                return validRecipes[0];
-            }
+            return closestColorRecipe;
+        }
 
-            return null;
+        private static float ColorDistance(Color a, Color b)
+        {
+            float rDiff = a.r - b.r;
+            float gDiff = a.g - b.g;
+            float bDiff = a.b - b.b;
+
+            return Mathf.Sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff);
         }
 
         public void Register()
