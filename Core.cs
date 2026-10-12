@@ -57,7 +57,7 @@ namespace DyeingAPI
         /// <param name="excludeInputMaterials">If true, inputMaterials becomes a blacklist instead of a whitelist.</param>
         /// <param name="liquids">List of hashes of the LiquidDefinitions that should be allowed for this recipe.</param>
         /// <param name="outputMaterial">PhysicalMaterial that the NetworkPrefab will be given by this recipe.</param>
-        public DyeRecipe(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial)
+        public void Initialize(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial)
         {
             this.name = name;
             base.hash = hash;
@@ -73,14 +73,15 @@ namespace DyeingAPI
         /// <summary>
         /// A recipe that also matches custom liquids, such as stews, by their color.
         /// </summary>
-        /// <param name="liquidColors">Colors this recipe accepts from a custom liquid, as 0 to 1 RGB. Alpha is ignored. A custom liquid has no LiquidDefinition, so it is matched by LiquidData.TintedLiquidColor instead of by hash. Preset liquids still only match by the liquids list.</param>        /// <param name="colorTolerance">How far the liquid's color may be from one of the liquidColors, as a straight distance in RGB. If several recipes match, the closest color wins.</param>
+        /// <param name="liquidColors">Colors this recipe accepts from a custom liquid, as 0 to 1 RGB. Alpha is ignored. A custom liquid has no LiquidDefinition, so it is matched by LiquidData.TintedLiquidColor instead of by hash. Preset liquids still only match by the liquids list.</param>
         /// <param name="hueTolerance">How far the hue may be from one of liquidColors, in degrees (0 to 180). Hue wraps around, so 0 and 360 are the same red. Ignored when either color is too gray or too dark to have a real hue.</param>
         /// <param name="saturationTolerance">How far the saturation may be, 0 to 1. Ignored when either color is too dark to have a real saturation.</param>
         /// <param name="valueTolerance">How far the brightness (value) may be, 0 to 1. If several recipes match, the closest one wins.</param>
         /// <param name="liquidBlacklist">List of hashes of LiquidDefinitions that should be blacklisted from being allowed, regardless of if they match colors. Mainly intended to be used for blue colors that would otherwise allow Water as a dye. If null, defaults to the empty list.</param>
-        public DyeRecipe(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial, List<Color> liquidColors, float hueTolerance = 15f, float saturationTolerance = 0.15f, float valueTolerance = 0.15f, List<uint> liquidBlacklist = null)
-            : this(name, hash, inputPrefabs, inputMaterials, excludeInputMaterials, liquids, outputMaterial)
+        public void Initialize(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial, List<Color> liquidColors, float hueTolerance = 15f, float saturationTolerance = 0.15f, float valueTolerance = 0.15f, List<uint> liquidBlacklist = null)
         {
+            Initialize(name, hash, inputPrefabs, inputMaterials, excludeInputMaterials, liquids, outputMaterial);
+
             this.liquidColors = liquidColors;
             this.hueTolerance = hueTolerance;
             this.saturationTolerance = saturationTolerance;
@@ -93,6 +94,41 @@ namespace DyeingAPI
             {
                 this.liquidBlacklist = liquidBlacklist;
             }
+        }
+
+        /// <summary>
+        /// Creates and returns a new DyeRecipe.
+        /// </summary>
+        /// <param name="inputPrefabs">List of hashes of the NetworkPrefabs that should be allowed to be dyed by this recipe. The only requirement is that it must have a PhysicalMaterialPart directly on the same object as the NetworkPrefab.</param>
+        /// <param name="inputMaterials">List of hashes of the PhysicalMaterials that should be whitelisted for this recipe. For example, if you set this to the Dais Leather hash, you can only do this recipe if the NetworkPrefab is already Dais Leather.</param>
+        /// <param name="excludeInputMaterials">If true, inputMaterials becomes a blacklist instead of a whitelist.</param>
+        /// <param name="liquids">List of hashes of the LiquidDefinitions that should be allowed for this recipe.</param>
+        /// <param name="outputMaterial">PhysicalMaterial that the NetworkPrefab will be given by this recipe.</param>
+        public static DyeRecipe Create(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial)
+        {
+            DyeRecipe dyeRecipe = ScriptableObject.CreateInstance<DyeRecipe>();
+            dyeRecipe.Initialize(name, hash, inputPrefabs, inputMaterials, excludeInputMaterials, liquids, outputMaterial);
+            return dyeRecipe;
+        }
+
+        /// <summary>
+        /// Creates and returns a new DyeRecipe, using the optional color matching params.
+        /// </summary>
+        /// <param name="inputPrefabs">List of hashes of the NetworkPrefabs that should be allowed to be dyed by this recipe. The only requirement is that it must have a PhysicalMaterialPart directly on the same object as the NetworkPrefab.</param>
+        /// <param name="inputMaterials">List of hashes of the PhysicalMaterials that should be whitelisted for this recipe. For example, if you set this to the Dais Leather hash, you can only do this recipe if the NetworkPrefab is already Dais Leather.</param>
+        /// <param name="excludeInputMaterials">If true, inputMaterials becomes a blacklist instead of a whitelist.</param>
+        /// <param name="liquids">List of hashes of the LiquidDefinitions that should be allowed for this recipe.</param>
+        /// <param name="outputMaterial">PhysicalMaterial that the NetworkPrefab will be given by this recipe.</param>
+        /// <param name="liquidColors">Colors this recipe accepts from a custom liquid, as 0 to 1 RGB. Alpha is ignored. A custom liquid has no LiquidDefinition, so it is matched by LiquidData.TintedLiquidColor instead of by hash. Preset liquids still only match by the liquids list.</param>        /// <param name="colorTolerance">How far the liquid's color may be from one of the liquidColors, as a straight distance in RGB. If several recipes match, the closest color wins.</param>
+        /// <param name="hueTolerance">How far the hue may be from one of liquidColors, in degrees (0 to 180). Hue wraps around, so 0 and 360 are the same red. Ignored when either color is too gray or too dark to have a real hue.</param>
+        /// <param name="saturationTolerance">How far the saturation may be, 0 to 1. Ignored when either color is too dark to have a real saturation.</param>
+        /// <param name="valueTolerance">How far the brightness (value) may be, 0 to 1. If several recipes match, the closest one wins.</param>
+        /// <param name="liquidBlacklist">List of hashes of LiquidDefinitions that should be blacklisted from being allowed, regardless of if they match colors. Mainly intended to be used for blue colors that would otherwise allow Water as a dye. If null, defaults to the empty list.</param>
+        public static DyeRecipe Create(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial, List<Color> liquidColors, float hueTolerance = 15f, float saturationTolerance = 0.15f, float valueTolerance = 0.15f, List<uint> liquidBlacklist = null)
+        {
+            DyeRecipe dyeRecipe = ScriptableObject.CreateInstance<DyeRecipe>();
+            dyeRecipe.Initialize(name, hash, inputPrefabs, inputMaterials, excludeInputMaterials, liquids, outputMaterial, liquidColors, hueTolerance, saturationTolerance, valueTolerance, liquidBlacklist);
+            return dyeRecipe;
         }
 
         public List<uint> inputPrefabs;
@@ -258,7 +294,7 @@ namespace DyeingAPI
 
         private void SetUpColorlessDyeRecipes()
         {
-            new DyeRecipe(
+            DyeRecipe.Create(
                 "Colorless Leather Recipe",
                 1,
                 leatherPrefabHashes,
@@ -268,7 +304,7 @@ namespace DyeingAPI
                 10201u
             );
 
-            new DyeRecipe(
+            DyeRecipe.Create(
                 "Colorless Canvas Recipe",
                 2,
                 canvasPrefabHashes,
@@ -278,7 +314,7 @@ namespace DyeingAPI
                 10202u
             );
 
-            new DyeRecipe(
+            DyeRecipe.Create(
                 "Colorless Rope Recipe",
                 3,
                 ropePrefabHashes,
