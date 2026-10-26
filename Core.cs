@@ -101,6 +101,7 @@ namespace DyeingAPI
         /// <param name="saturationTolerance">How far the saturation may be, 0 to 1. Ignored when either color is too dark to have a real saturation.</param>
         /// <param name="valueTolerance">How far the brightness (value) may be, 0 to 1. If several recipes match, the closest one wins.</param>
         /// <param name="liquidBlacklist">List of hashes of LiquidDefinitions that should be blacklisted from being allowed, regardless of if they match colors. Mainly intended to be used for blue colors that would otherwise allow Water as a dye. If null, defaults to the empty list.</param>
+        /// <param name="bypassGlobalLiquidBlacklist">If true, bypasses the global liquid blacklist and allows liquids on it to be accepted for the recipe.</param>
         public static DyeRecipe Create(string name, int hash, List<uint> inputPrefabs, List<uint> inputMaterials, bool excludeInputMaterials, List<uint> liquids, uint outputMaterial, List<Color> liquidColors = null, float hueTolerance = 15f, float saturationTolerance = 0.15f, float valueTolerance = 0.15f, List<uint> liquidBlacklist = null, bool bypassGlobalLiquidBlacklist = false)
         {
             DyeRecipe dyeRecipe = ScriptableObject.CreateInstance<DyeRecipe>();
